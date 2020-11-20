@@ -1,14 +1,37 @@
 import copy
+import queue
+import time
+# class Item:
+#     def __init__(self,priority,name):
+#         self.priority = priority
+#         self.name = name
+#     def __cmp__(self, other):
+#         return self.priority<=other.priority
+
+def orderedVariables(factorList, orderedListOfHiddenVariables: list):
+    q = queue.PriorityQueue()
+    for v in orderedListOfHiddenVariables:
+        for f in factorList:
+            if v == f.name:
+                q.put((len(f.varList), v))
+                break
+    orderedListOfHiddenVariables.clear()
+    while q.qsize():
+        orderedListOfHiddenVariables.append(q.get()[1])
+
+
+
 class VariableElimination:
     @staticmethod
     def inference(factorList, queryVariables,
     orderedListOfHiddenVariables, evidenceList, valueMap):
+        # orderedVariables(factorList,orderedListOfHiddenVariables)
         for ev in evidenceList:
             #Your code here
             for i in range(0,len(factorList)):
                 if ev in factorList[i].varList:
                    factorList[i] = factorList[i].restrict(ev,evidenceList[ev],valueMap)
-
+        max = 0
         for var in orderedListOfHiddenVariables:
             #Your code here
             eliminataList = []
@@ -24,15 +47,21 @@ class VariableElimination:
             for i in range(len(eliminataList)-1,-1,-1):
                 del factorList[eliminataList[i]]
             factorList.append(newfactor)
+            # 这里是计算消除宽度，但是我不确定这么算对不对。就是计算变量的个数是应该计算所有的因子呢？还是应该只计算包含要消除的变量的因子？
+            # 觉得其实无论算哪个结果都是一样的？因为证据已经被我们restrict了，剩下的应该除了查询变量就是消除变量了？
+            for f in factorList:
+                if len(f.varList)>max:
+                    max = len(f.varList)
 
-        print("RESULT:")
-        res = factorList[0]
-        for factor in factorList[1:]:
-            res = res.multiply(factor)
-        total = sum(res.cpt.values())
-        res.cpt = {k: v/total for k, v in res.cpt.items()}
-        res.printInf()
-
+        # print("RESULT:")
+        # res = factorList[0]
+        # for factor in factorList[1:]:
+        #     res = res.multiply(factor)
+        # total = sum(res.cpt.values())
+        # res.cpt = {k: v/total for k, v in res.cpt.items()}
+        # res.printInf()
+        # print("max eliminate width:",max)
+        # print(orderedListOfHiddenVariables)
     @staticmethod
     def printFactors(factorList):
         for factor in factorList:
@@ -46,9 +75,6 @@ class Node:
         self.name = name
         self.varList = var_list
         self.cpt = {}
-        self.valuemap = {}
-    def setValuemap(self,valuemap):
-        self.valuemap = valuemap
     def setCpt(self, cpt):
         self.cpt = cpt
     def printInf(self):
@@ -158,12 +184,6 @@ class Node:
         new_node.setCpt(new_cpt)
         return new_node
 
-# create nodes for Bayes Net
-# B = Node("B", ["B"])
-# E = Node("E", ["E"])
-# A = Node("A", ["A", "B","E"])
-# J = Node("J", ["J", "A"])
-# M = Node("M", ["M", "A"])
 PatientAge = Node("PatientAge",["PatientAge"])
 CTScanResult = Node("CTScanResult",["CTScanResult"])
 MRIScanResult = Node("MRIScanResult",["MRIScanResult"])
@@ -172,13 +192,6 @@ StrokeType = Node("StrokeType",["StrokeType","CTScanResult","MRIScanResult"])
 Disability = Node("Disability",["Disability","PatientAge","StrokeType"])
 Mortality = Node("Mortality",["Mortality","StrokeType","Anticoagulants"])
 
-PatientAge.setValuemap({0:'0-30',1:'31-65',2:'65+'})
-CTScanResult.setValuemap({0:'Ischemic Stroke',1:'Hemmorraghic Stroke'})
-MRIScanResult.setValuemap({0:'Ischemic Stroke',1:'Hemmorraghic Stroke'})
-Anticoagulants.setValuemap({0:'Not used',1:'Used'})
-StrokeType.setValuemap({0:'Ischemic Stroke',1:'Hemmorraghic Stroke',2:'Stroke Mimic'})
-Disability.setValuemap({0:'Negligible',1:'Moderate',2:'Severe'})
-Mortality.setValuemap({0:'False',1:'True'})
 
 valueMap = {'PatientAge':{0:'0-30',1:'31-65',2:'65+'},
             'CTScanResult':{0:'Ischemic Stroke',1:'Hemmorraghic Stroke'},
@@ -204,21 +217,46 @@ Disability.setCpt({'000':0.8,'010':0.7,'002':0.9,'001':0.6,'011':0.5,'012':0.4,'
                    '200':0.8,'210':0.7,'202':0.9,'201':0.6,'211':0.5,'212':0.4,'220':0.3,'021':0.2,'022':0.1,})
 
 
-# Generate cpt for each node
-# B.setCpt({'0': 0.999, '1': 0.001})
-# E.setCpt({'0': 0.998, '1': 0.002})
-# A.setCpt({'111': 0.95, '011': 0.05, '110':0.94,'010':0.06,
-# '101':0.29,'001':0.71,'100':0.001,'000':0.999})
-# J.setCpt({'11': 0.9, '01': 0.1, '10': 0.05, '00': 0.95})
-# M.setCpt({'11': 0.7, '01': 0.3, '10': 0.01, '00': 0.99})
+eliminatelist1 = ['StrokeType','Disability','MRIScanResult','Anticoagulants']
+eliminatelist2 = ['StrokeType','Anticoagulants','Mortality']
+eliminatelist3 = ['Disability','Mortality','Anticoagulants']
+eliminatelist4 = ['StrokeType','Disability','Mortality','CTScanResult','MRIScanResult']
+eliminatelist5 = ['StrokeType','Mortality','PatientAge','CTScanResult','MRIScanResult','Anticoagulants']
 
-# print("P(A) **********************")
-# VariableElimination.inference([B,E,A,J,M], ['A'], ['B', 'E', 'J','M'], {})
-#
-# print("P(B | J~M) **********************")
-# VariableElimination.inference([B,E,A,J,M], ['B'], ['E','A'], {'J':1,'M':0})
+start = [0,0,0,0,0]
+end = [0,0,0,0,0]
 
-VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],
-                              ['Mortality','CTScanResult'],['Disability','MRIScanResult','StrokeType','Anticoagulants'],{'PatientAge':1},valueMap)
-VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],
-                              ['Disability','CTScanResult'],['Anticoagulants','StrokeType','Mortality'],{'PatientAge':2,'MRIScanResult':1},valueMap)
+#只运行一次结果不明显，运行10000次做对比
+
+start1 = time.time()
+for i in range(0,10000):
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['Mortality','CTScanResult'],eliminatelist1,{'PatientAge':1},valueMap)
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['Disability','CTScanResult'], eliminatelist2,{'PatientAge':2,'MRIScanResult':1},valueMap)
+    VariableElimination.inference(
+        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality], ['StrokeType'],
+        eliminatelist3, {'PatientAge': 2, 'CTScanResult': 1, 'MRIScanResult': 0}, valueMap)
+    VariableElimination.inference(
+        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+        ['Anticoagulants'], eliminatelist4, {'PatientAge': 1}, valueMap)
+    VariableElimination.inference(
+        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality], ['Disability'],
+        eliminatelist5, {}, valueMap)
+end1 = time.time()
+
+start2 = time.time()
+orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist1)
+orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist2)
+orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist3)
+orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist4)
+orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist5)
+for i in range(0,10000):
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['Mortality','CTScanResult'],eliminatelist1,{'PatientAge':1},valueMap)
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['Disability','CTScanResult'], eliminatelist2,{'PatientAge':2,'MRIScanResult':1},valueMap)
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['StrokeType'], eliminatelist3, {'PatientAge':2,'CTScanResult':1,'MRIScanResult':0},valueMap)
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['Anticoagulants'], eliminatelist4, {'PatientAge':1},valueMap)
+    VariableElimination.inference([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality], ['Disability'], eliminatelist5, {}, valueMap)
+end2 = time.time()
+
+
+print(end1-start1)
+print(end2-start2)
