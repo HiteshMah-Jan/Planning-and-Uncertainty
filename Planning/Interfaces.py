@@ -15,7 +15,8 @@ class Problem:
     # initial里是不会出现动作的
     class Action:
         # 在这里定义的变量是属于整个类的变量，全局变量的优雅使用
-        def __init__(self,pre = None,add = None,dele = None,inst:dict = None):
+        def __init__(self,na = None, pre = None,add = None,dele = None,inst:dict = None):
+            self.name = na
             # 保存所有的前提条件
             self.precondition = pre
             # 保存这个动作要添加的状态
