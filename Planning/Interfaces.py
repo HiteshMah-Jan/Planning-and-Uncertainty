@@ -45,12 +45,14 @@ class Problem:
         Problem.variables = v
         Problem.goalState = g
 
+
     def findActionsCanBedo(self)->queue.PriorityQueue:
         # 根据nowState的值寻找当前所有可以做的动作
         # 保存到actions中
-    # 这个实际上就是搜索函数!!!这里还有问题！！！！
+        # 这个动作和动作的启发式函数值作为一个tuple存在这里，启发式函数值就是做了这个动作之后的状态的countAction
+    # 这个实际上就是搜索函数
     def solve(self,actions):
-        actionscopy = copy.deepcopy(actions)
+
         if actions.empty():
             return False
         # 获取第一个动作
@@ -60,12 +62,12 @@ class Problem:
         Problem.solves.append(theAction)
         if Problem.nowState==Problem.goalState:
             return True
+        actionscopy = copy.deepcopy(actions)
         actions = self.findActionsCanBedo()
         if actions:
             return self.solves(actions)
         # 如果运行到这了就说明这个动作会导致问题无解，回溯
         actions = actionscopy
-        actions.get()
         theAction.pullBack()
 
 
