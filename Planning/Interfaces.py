@@ -202,24 +202,31 @@ def readproblem(filename):
                 else:
                     i = j
                     break
+
         i = i + 1
+
 def readdomain(filename):
     file = open(filename)
     lines = file.readlines()
+    a = []
+    for i in range(0,10):
+        a.append(Problem.Action())
+    cnt = 0
     i = 0
     while(i<len(lines)):
         line = lines[i]
         line = line.strip()
         one = line.split(' ')
         if one[0]=='(:action':
-            a = Problem.Action()
-            a.name = lines[i+1].strip()
+            # a[cnt] = Problem.Action()
+            a[cnt].name = lines[i+1].strip()
             j = i+2
             while(j<len(lines)):
                 temp1 = lines[j]
                 temp1 = temp1.strip()
                 temp1list = temp1.split(' ')
                 if temp1list[0]==':parameters':
+                    a[cnt].parameter = {}
                     for k in range(j+1,len(lines)):
                         temp2 = lines[k]
                         temp2 = temp2.strip()
@@ -229,8 +236,14 @@ def readdomain(filename):
                             j = k
                             break
                         for v in temp2list[0:-2]:
-                            a.parameter[v] = temp2list[-1]
+                            a[cnt].parameter[v] = temp2list[-1]
                 if temp1list[0]==':precondition' or temp1list[0]==':effect':
+                    if temp1list[0] ==':precondition':
+                        a[cnt].notPre = []
+                        a[cnt].yesPre = []
+                    else:
+                        a[cnt].addlist = []
+                        a[cnt].deletelist = []
                     for k in range(j+1,len(lines)):
                         temp2 = lines[k]
                         temp2 = temp2.strip()
@@ -250,16 +263,20 @@ def readdomain(filename):
                             temp3.append(tempstr)
                         if temp1list[0]==':precondition':
                             if temp2list[0] == 'not':
-                                a.notPre.append(temp3)
+                                a[cnt].notPre.append(temp3)
                             else:
-                                a.yesPre.append(temp3)
+                                a[cnt].yesPre.append(temp3)
                         elif temp1list[0]==':effect':
                             if temp2list[0] == 'not':
-                                a.deletelist.append(temp3)
+                                a[cnt].deletelist.append(temp3)
                             else:
-                                a.addlist.append(temp3)
+                                a[cnt].addlist.append(temp3)
+                if temp1list[0]==')':
+                    i = j
+                    break
                 j = j + 1
-            Problem.action_list.append(a)
+            Problem.action_list.append(a[cnt])
+            cnt += 1
         i = i+1
 
 readproblem('pddl\\test0\\test0_problem.txt')
