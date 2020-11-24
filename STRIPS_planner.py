@@ -33,10 +33,6 @@ class Problem:
         Problem.nowState = s
         Problem.variables = v
         Problem.goalState = g
-        # 记录解的动作
-        Problem.solves = []
-        # 动作列表，存放Action类对象
-        Problem.action_list = []
 
     # 子类 Action
     class Action:
@@ -275,6 +271,15 @@ class Problem:
             ret.put((i.getHeuristic(self), i))
         return ret
 
+    # @classmethod
+    # def changeActionstoQueue(cls) -> queue.PriorityQueue:
+    #     #     这个函数将上面的结果list转化成queue，大概就像下面那样
+    #     ret = queue.PriorityQueue()
+    #     acts = cls.findActionsCanBedo()
+    #     for i in acts:
+    #         ret.put((i.getHeuristic(cls), i))
+    #     return ret
+
     # 这个实际上就是搜索函数
     def solve(self, actions):
         # 获取第一个动作
@@ -300,7 +305,7 @@ class Problem:
 
 
 # 先读problem，把变量和对应的类型先读出来
-def readproblem(filename,problem):
+def readproblem( filename):
     file = open(filename)
     lines = file.readlines()
     i = 0
@@ -315,7 +320,7 @@ def readproblem(filename,problem):
                 templist = temp.split(' ')
                 if templist[0] != ')':
                     for v in templist[0:-2]:
-                        problem.variables[v] = templist[-1]
+                        Problem.variables[v] = templist[-1]
                 else:
                     i = j
                     break
@@ -327,7 +332,7 @@ def readproblem(filename,problem):
                 temp = temp.strip(')')
                 templist = temp.split(' ')
                 if templist[0] != '':
-                    problem.nowState.append(templist)
+                    Problem.nowState.append(templist)
                 else:
                     i = j
                     break
@@ -339,7 +344,7 @@ def readproblem(filename,problem):
                 temp = temp.strip(')')
                 templist = temp.split(' ')
                 if templist[0] != '':
-                    problem.goalState.append(templist)
+                    Problem.goalState.append(templist)
                 else:
                     i = j
                     break
@@ -347,7 +352,7 @@ def readproblem(filename,problem):
         i = i + 1
 
 
-def readdomain(filename,Problem):
+def readdomain(filename):
     file = open(filename)
     lines = file.readlines()
     a = []
@@ -355,7 +360,7 @@ def readdomain(filename,Problem):
         a.append(Problem.Action())
     cnt = 0
     i = 0
-    while i < len(lines):
+    while (i < len(lines)):
         line = lines[i]
         line = line.strip()
         one = line.split(' ')
@@ -363,7 +368,7 @@ def readdomain(filename,Problem):
             # a[cnt] = Problem.Action()
             a[cnt].name = lines[i + 1].strip()
             j = i + 2
-            while j < len(lines):
+            while (j < len(lines)):
                 temp1 = lines[j]
                 temp1 = temp1.strip()
                 temp1list = temp1.split(' ')
@@ -423,14 +428,14 @@ def readdomain(filename,Problem):
 
 
 if __name__ == '__main__':
-    problem = Problem()
     # 读文件
-    readproblem('pddl\\test0\\test0_problem.txt',problem)
-    readdomain('pddl\\test0\\test0_domain.txt',problem)
-    print(problem.action_list[0].name)
+    readproblem('pddl\\test0\\test0_problem.txt')
+    readdomain('pddl\\test0\\test0_domain.txt')
+    print(Problem.action_list[0].name)
 
-    initial_actions = problem.changeActionstoQueue()
-    problem.solve(initial_actions)
+
+    initial_actions = Problem.changeActionstoQueue()
+    Problem.solve(initial_actions)
 
 """
 #test case 0
