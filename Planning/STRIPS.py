@@ -38,7 +38,7 @@ class Problem:
             self.paraorder = paraorder
 
         # 判断一个动作能否被做，以及可以做的实例赋值，返回为bool和二位列表
-        def canBeDo(self) -> (bool, list):
+        def canBeDo(self,thestate) -> (bool, list):
             # 用所有的可能地变量组合去实例化这个动作
             # 判断这个动作是不是可以被做,可以的话，返回满足的赋值字典的列表
             # 遍历所有变量的组合，类型一样的判断组成的前提能否全部在now_state被满足，
@@ -71,7 +71,7 @@ class Problem:
 
                     # 在状态查找是否有这个，没有的话break
                     can_find = False
-                    for state in Problem.nowState:
+                    for state in thestate:
                         if operator.eq(temp_yes_pre, state):  # 找到了，不用继续，直接判断下一个前提
                             can_find = True
                             break
@@ -84,7 +84,7 @@ class Problem:
                     print("替换后temp not pre = ", temp_not_pre)
 
                     # 在状态查找是否有这个，有的话break
-                    for state in Problem.nowState:
+                    for state in thestate:
                         if operator.eq(temp_not_pre, state):  # 找到了，这个赋值不可以
                             flag = False
                             break
@@ -117,12 +117,12 @@ class Problem:
             # 这个动作不行，回溯，把删掉的加回来，加上的删去
             # 删除add
             for add_state in self.add:
-                if add_state not in Problem.nowState:
+                if add_state in Problem.nowState:
                     Problem.nowState.remove(add_state)
                     print("pullback删除state:" , add_state)
             # 加入del
             for del_state in self.delete:
-                if del_state in Problem.nowState:
+                if del_state not in Problem.nowState:
                     Problem.nowState.append(del_state)
                     print("pullback加入state:" , del_state)
 
@@ -236,14 +236,14 @@ class Problem:
 
         return new_action
 
-    def findActionsCanBedo(self) -> list:
+    def findActionsCanBedo(self,state) -> list:
         #     这个还是找所有可以做的动作，但是返回一个list,传入的参数是对于这个状态所有可以做的list
         #     在solve函数里调用的时候传入nowstate就可以了
         #     因为在计算启发式函数的值的时候也要用到这个函数，如果不拆开直接用原来的就相互调用了
         action_list = []
         for action in self.action_list:
 
-            can_do, assign_list = action.canBeDo()
+            can_do, assign_list = action.canBeDo(state)
             # 如果可以做,对其中每一个可行的排列进行实例化
             if can_do == True:
                 # 遍历每一个赋值字典
@@ -255,7 +255,7 @@ class Problem:
     def changeActionstoQueue(self) -> queue.PriorityQueue:
         #     这个函数将上面的结果list转化成queue，大概就像下面那样
         ret = queue.PriorityQueue()
-        acts = self.findActionsCanBedo()
+        acts = self.findActionsCanBedo(self.nowState)
         for i in acts:
             ret.put((i.getHeuristic(self), i))
         return ret
