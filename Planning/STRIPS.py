@@ -67,7 +67,7 @@ class Problem:
                 for pre in self.yesPre:
                     # 逐个item进行替换
                     temp_yes_pre = self.instanceTheAction(pre, temp_instances)
-                    print("替换后temp yes pre = ", temp_yes_pre)
+                    # print("替换后temp yes pre = ", temp_yes_pre)
 
                     # 在状态查找是否有这个，没有的话break
                     can_find = False
@@ -81,7 +81,7 @@ class Problem:
                 # 2.no前提要不在状态中
                 for pre in self.notPre:
                     temp_not_pre = self.instanceTheAction(pre, temp_instances)
-                    print("替换后temp not pre = ", temp_not_pre)
+                    # print("替换后temp not pre = ", temp_not_pre)
 
                     # 在状态查找是否有这个，有的话break
                     for state in thestate:
@@ -106,12 +106,12 @@ class Problem:
             for add_state in self.add:
                 if add_state not in Problem.nowState:
                     Problem.nowState.append(add_state)
-                    print("加入state:" , add_state)
+                    # print("加入state:" , add_state)
             # 删去del
             for del_state in self.delete:
                 if del_state in Problem.nowState:
                     Problem.nowState.remove(del_state)
-                    print("删除state:" , del_state)
+                    # print("删除state:" , del_state)
 
         def pullBack(self):
             # 这个动作不行，回溯，把删掉的加回来，加上的删去
@@ -119,12 +119,12 @@ class Problem:
             for add_state in self.add:
                 if add_state in Problem.nowState:
                     Problem.nowState.remove(add_state)
-                    print("pullback删除state:" , add_state)
+                    # print("pullback删除state:" , add_state)
             # 加入del
             for del_state in self.delete:
                 if del_state not in Problem.nowState:
                     Problem.nowState.append(del_state)
-                    print("pullback加入state:" , del_state)
+                    # print("pullback加入state:" , del_state)
 
         def do(self):
             # 说明这个动作已经实例化了
@@ -158,44 +158,46 @@ class Problem:
             # 这是一个list，包含所有可以做的动作
             stateret = []
             actionsret = []
-            stateret.append(initstate)
+            stateret.append(initstate[:])
             while not self.isContainGoal(initstate):
                 # 找到所有可以做的动作，这个里面都是实例化好的动作
                 tempactions = problem.findActionsCanBedo(initstate)
                 if len(actionsret) > 0:
                     # 做差集
                     subset = [i for i in tempactions if i not in actionsret[-1]]
-                    actionsret.append(subset)
+                    actionsret.append(subset[:])
                 else:
                     # 把这个list添加到动作层
-                    actionsret.append(tempactions)
+                    actionsret.append(tempactions[:])
                 # 添加所有的addlist到当前状态层
-                for add in self.add:
-                    tempadd = Problem.instanceTheAction(add, self.instance)
-                    initstate.append(tempadd)
-                stateret.append(initstate)
+                # for add in self.add:
+                #     initstate.append(add)
+                for action in actionsret[-1]:
+                    for add in action.add:
+                        initstate.append(add)
+                stateret.append(initstate[:])
             return stateret, actionsret
 
         # S就是状态层,第k层状态层，对应第k-1层动作层
         def countActions(self, G, S, k, A):
             if k == 0: return 0
-            Gp = list(set(G).intersection(set(S[k - 1])))
+            Gp = [x for x in G if x in S[k-1]]
             Gn = [i for i in G if i not in Gp]
             theA = []
             for a in A[k - 1]:
                 instant_add = []
-                for t in a.addlist:
-                    tempac = a.instanceTheAction(t, a.instance)
-                    instant_add.append(tempac)
-                    if tempac in Gn and a not in theA:
+                for t in a.add:
+                    # tempac = a.instanceTheAction(t, a.instance)
+                    instant_add.append(t)
+                    if t in Gn and a not in theA:
                         theA.append(a)
                 if theA[-1] == a:
                     for i in a.yesPre:
-                        tempypr = a.instanceTheAction(i, a.instance)
-                        Gp.append(tempypr)
+                        # tempypr = a.instanceTheAction(i, a.instance)
+                        Gp.append(i)
                     for i in a.notPre:
-                        tempnpr = a.instanceTheAction(i, a.instance)
-                        Gp.append(tempnpr)
+                        # tempnpr = a.instanceTheAction(i, a.instance)
+                        Gp.append(i)
                     for i in instant_add:
                         if i in Gn:
                             Gn.remove(i)
@@ -257,7 +259,10 @@ class Problem:
         ret = queue.PriorityQueue()
         acts = self.findActionsCanBedo(self.nowState)
         for i in acts:
-            ret.put((i.getHeuristic(self), i))
+            temp = i.getHeuristic(self)
+            # print(temp)
+            ret.put((temp, i))
+
         return ret
 
 
@@ -269,8 +274,14 @@ class Problem:
         # 做这个动作
         theAction.do()
         Problem.solves.append(theAction)
-        if Problem.nowState == Problem.goalState:
+        is_goal = True
+        for goal in Problem.goalState:
+            if goal not in Problem.nowState:
+                is_goal = False
+        if is_goal:
             return True
+        # if Problem.goalState in Problem.nowState:
+        #     return True
 
         actionsb = self.changeActionstoQueue()
         if actionsb:
@@ -282,7 +293,10 @@ class Problem:
     def printActions(self):
         print("-------Actions-------")
         for i in range(len(self.solves)):
-            print("action ", i, " ", self.solves[i])
+            action = [self.solves[i].name]
+            for val in self.solves[i].instance.values():
+                action.append(val)
+            print("action", i," :", action)
         print("--------Done--------")
 
 
@@ -416,7 +430,8 @@ if __name__ == '__main__':
     readproblem('pddl\\test0\\test0_problem.txt')
     readdomain('pddl\\test0\\test0_domain.txt')
     problem = Problem(Problem.nowState,Problem.variables,Problem.goalState)
-    print(Problem.variables)
+
 
     initial_actions = problem.changeActionstoQueue()
-    Problem.solve(initial_actions)
+    problem.solve(initial_actions)
+    problem.printActions()
