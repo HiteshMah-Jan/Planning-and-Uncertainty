@@ -17,6 +17,8 @@ class Problem:
     # 动作列表，存放Action类对象
     action_list = []
 
+    cost = 0
+
     # 构造函数
     def __init__(self, s: list = [], v={}, g: list = []):
         Problem.nowState = s
@@ -37,7 +39,27 @@ class Problem:
             self.parameter = parameter
             self.paraorder = paraorder
 
-        # 判断一个动作能否被做，以及可以做的实例赋值，返回为bool和二位列表
+        def __eq__(self, other):
+            if self.name!=other.name:
+                return False
+            if self.yesPre != other.yesPre:
+                return False
+            if self.notPre != other.notPre:
+                return False
+            if self.add != other.add:
+                return False
+            if self.instance!=other.instance:
+                return False
+            if self.parameter != other.parameter:
+                return False
+            if self.paraorder != other.paraorder:
+                return False
+            return True
+
+        def __lt__(self, other):
+            return self.name < other.name
+
+            # 判断一个动作能否被做，以及可以做的实例赋值，返回为bool和二位列表
         def canBeDo(self,thestate) -> (bool, list):
             # 用所有的可能地变量组合去实例化这个动作
             # 判断这个动作是不是可以被做,可以的话，返回满足的赋值字典的列表
@@ -54,7 +76,8 @@ class Problem:
                 flag = True
                 # 1.对应类型要一样
                 for i in range(len(permutation)):
-
+                    temp1 = permutation[i]
+                    temp2 = self.paraorder[i]
                     if Problem.variables[permutation[i]] != self.parameter[self.paraorder[i]]:
                         flag = False
                         break
@@ -78,6 +101,8 @@ class Problem:
                     if can_find == False:  # 找不到,这个赋值不可以
                         flag = False
                         break
+                if flag == False:  # 这个赋值不可，找下一个排列
+                    continue
                 # 2.no前提要不在状态中
                 for pre in self.notPre:
                     temp_not_pre = self.instanceTheAction(pre, temp_instances)
@@ -106,12 +131,12 @@ class Problem:
             for add_state in self.add:
                 if add_state not in Problem.nowState:
                     Problem.nowState.append(add_state)
-                    # print("加入state:" , add_state)
+                    print("加入state:" , add_state)
             # 删去del
             for del_state in self.delete:
                 if del_state in Problem.nowState:
                     Problem.nowState.remove(del_state)
-                    # print("删除state:" , del_state)
+                    print("删除state:" , del_state)
 
         def pullBack(self):
             # 这个动作不行，回溯，把删掉的加回来，加上的删去
@@ -152,6 +177,20 @@ class Problem:
                 ret.append(instance[clause[j]])
             return ret
 
+        @staticmethod
+        def differenceset(this,other):
+            ret = []
+
+            for i in this:
+                havesame = False
+                for j in other:
+                    if i==j:
+                        havesame = True
+                        break
+                if not havesame:
+                    ret.append(i)
+            return ret
+
         # 从当前状态出发，只添加不删除找到包含目标状态的那一层
         # 返回两个list,一个是状态层，一个是动作层，下标一一对应
         def getLayeredStruct(self, initstate, problem):
@@ -164,8 +203,14 @@ class Problem:
                 tempactions = problem.findActionsCanBedo(initstate)
                 if len(actionsret) > 0:
                     # 做差集
-                    subset = [i for i in tempactions if i not in actionsret[-1]]
-                    actionsret.append(subset[:])
+                    # subset = [i for i in tempactions if i not in actionsret[-1]]
+                    for actset in actionsret:
+                        # 和所有的集合做差集
+                        tempactions = self.differenceset(tempactions,actset)
+                    if len(tempactions):
+                        actionsret.append(tempactions[:])
+                    else:
+                        return False,stateret,actionsret
                 else:
                     # 把这个list添加到动作层
                     actionsret.append(tempactions[:])
@@ -176,7 +221,8 @@ class Problem:
                     for add in action.add:
                         initstate.append(add)
                 stateret.append(initstate[:])
-            return stateret, actionsret
+
+            return True,stateret, actionsret
 
         # S就是状态层,第k层状态层，对应第k-1层动作层
         def countActions(self, G, S, k, A):
@@ -212,7 +258,9 @@ class Problem:
 
         def getHeuristic(self, problem) -> int:
             initstate = self.fakeDo()
-            statelayer, actionlayer = self.getLayeredStruct(initstate, problem)
+            achieveable,statelayer, actionlayer = self.getLayeredStruct(initstate, problem)
+            if not achieveable:
+                return 99999
             return self.countActions(Problem.goalState, statelayer, len(statelayer) - 1, actionlayer)
 
     # 根据赋值字典，返回动作实例
@@ -266,7 +314,7 @@ class Problem:
         for i in acts:
             temp = i.getHeuristic(self)
             # print(temp)
-            ret.put((temp, i))
+            ret.put((self.cost+temp, i))
 
         return ret
 
@@ -276,8 +324,13 @@ class Problem:
     def solve(self, actions):
         # 获取第一个动作
         theAction = actions.get()[1]
+        aaaaaction = [theAction.name]
+        for val in theAction.instance.values():
+            aaaaaction.append(val)
+        print(aaaaaction)
         # 做这个动作
         theAction.do()
+        self.cost += 1
         Problem.solves.append(theAction)
         is_goal = True
         for goal in Problem.goalState:
@@ -293,6 +346,7 @@ class Problem:
             return self.solve(actionsb)
         # 如果运行到这了就说明这个动作会导致问题无解，回溯
         theAction.pullBack()
+        self.cost -= 1
         Problem.solves.remove(theAction)
 
     def printActions(self):
@@ -373,6 +427,7 @@ def readdomain(filename):
                 temp1list = temp1.split(' ')
                 if temp1list[0] == ':parameters':
                     tempcnt = 0
+                    a[cnt].paraorder = []
                     a[cnt].parameter = {}
                     for k in range(j + 1, len(lines)):
                         temp2 = lines[k]
@@ -432,10 +487,13 @@ def readdomain(filename):
 if __name__ == '__main__':
     # problem = Problem()
     # 读文件
-    readproblem('pddl\\test1\\test1_problem.txt')
-    readdomain('pddl\\test1\\test1_domain.txt')
+    readproblem('pddl\\test2\\test2_problem.txt')
+    readdomain('pddl\\test2\\test2_domain.txt')
     problem = Problem(Problem.nowState,Problem.variables,Problem.goalState)
-
+    # for i in problem.action_list:
+    #     if i.name=='attack':
+    #         for a in i.delete:
+    #             print(a)
 
     initial_actions = problem.changeActionstoQueue()
     problem.solve(initial_actions)
