@@ -63,10 +63,10 @@ class Problem:
                     continue
                 # 2.yes前提要在状态中
                 para_list = self.parameter.keys()
-                temp_instances = dict(zip(permutation, para_list))
+                temp_instances = dict(zip(para_list, permutation))
                 for pre in self.yesPre:
                     # 逐个item进行替换
-                    temp_yes_pre = Problem.instanceTheAction(pre, temp_instances)
+                    temp_yes_pre = self.instanceTheAction(pre, temp_instances)
                     print("替换后temp yes pre = ", temp_yes_pre)
 
                     # 在状态查找是否有这个，没有的话break
@@ -80,7 +80,7 @@ class Problem:
                         break
                 # 2.no前提要不在状态中
                 for pre in self.notPre:
-                    temp_not_pre = Problem.instanceTheAction(pre, temp_instances)
+                    temp_not_pre = self.instanceTheAction(pre, temp_instances)
                     print("替换后temp not pre = ", temp_not_pre)
 
                     # 在状态查找是否有这个，有的话break
@@ -208,16 +208,6 @@ class Problem:
             statelayer, actionlayer = self.getLayeredStruct(initstate, problem)
             return self.countActions(Problem.goalState, statelayer, len(statelayer) - 1, actionlayer)
 
-    # 实例化函数
-    # 输入：子句，替换字典；输出：替换后的子句
-    # 11.24修改——把他变成外部函数
-    def instanceTheAction(self, clause, instance) -> list:
-        ret = []
-        ret.append(clause[0])
-        for j in range(1, len(clause)):
-            ret.append(instance[clause[j]])
-        return ret
-
     # 根据赋值字典，返回动作实例
     def getActionInstance(self, original_action, assign) -> Action:
         new_action = self.Action()
@@ -228,19 +218,19 @@ class Problem:
         # 把yesPre替换
         new_action.yesPre = []
         for i in original_action.yesPre:
-            new_action.yesPre.append(self.instanceTheAction(i, assign))
+            new_action.yesPre.append(new_action.instanceTheAction(i, assign))
         # 把notPre替换
         new_action.notPre = []
-        for i in original_action.notPrePre:
-            new_action.notPre.append(self.instanceTheAction(i, assign))
+        for i in original_action.notPre:
+            new_action.notPre.append(new_action.instanceTheAction(i, assign))
         # 把add替换
         new_action.add = []
         for i in original_action.add:
-            new_action.add.append(self.instanceTheAction(i, assign))
+            new_action.add.append(new_action.instanceTheAction(i, assign))
         # 把add替换
         new_action.delete = []
         for i in original_action.delete:
-            new_action.delete.append(self.instanceTheAction(i, assign))
+            new_action.delete.append(new_action.instanceTheAction(i, assign))
         # parameter
         new_action.parameter = original_action.parameter
 
@@ -267,7 +257,7 @@ class Problem:
         ret = queue.PriorityQueue()
         acts = self.findActionsCanBedo()
         for i in acts:
-            ret.put((i.getHeuristic(), i))
+            ret.put((i.getHeuristic(self), i))
         return ret
 
 
