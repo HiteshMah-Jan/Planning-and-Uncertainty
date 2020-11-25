@@ -106,12 +106,12 @@ class Problem:
             for add_state in self.add:
                 if add_state not in Problem.nowState:
                     Problem.nowState.append(add_state)
-                    print("加入state:" + add_state)
+                    print("加入state:" , add_state)
             # 删去del
             for del_state in self.delete:
                 if del_state in Problem.nowState:
                     Problem.nowState.remove(del_state)
-                    print("删除state:" + del_state)
+                    print("删除state:" , del_state)
 
         def pullBack(self):
             # 这个动作不行，回溯，把删掉的加回来，加上的删去
@@ -119,12 +119,12 @@ class Problem:
             for add_state in self.add:
                 if add_state not in Problem.nowState:
                     Problem.nowState.remove(add_state)
-                    print("pullback删除state:" + add_state)
+                    print("pullback删除state:" , add_state)
             # 加入del
             for del_state in self.delete:
                 if del_state in Problem.nowState:
                     Problem.nowState.append(del_state)
-                    print("pullback加入state:" + del_state)
+                    print("pullback加入state:" , del_state)
 
         def do(self):
             # 说明这个动作已经实例化了
