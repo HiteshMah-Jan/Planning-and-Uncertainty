@@ -29,7 +29,7 @@ class Problem:
     action_list = []
 
     # 构造函数
-    def __init__(self, s: list = None, v=None, g: list = None):
+    def __init__(self, s: list = [], v={}, g: list = []):
         Problem.nowState = s
         Problem.variables = v
         Problem.goalState = g
@@ -37,8 +37,8 @@ class Problem:
     # 子类 Action
     class Action:
         # 构造函数
-        def __init__(self, na=None, yespre=None, notpre=None, add=None, delete=None, instance: dict = None,
-                     parameter: dict = None):
+        def __init__(self,na = None, yespre = [],notpre:list = [],add = [],delete = [],instance:dict = [],
+                     parameter:dict = {}, paraorder = []):
             self.name = na
             self.yesPre = yespre  # 二维列表，存放需要在状态列表中的literal
             self.notPre = notpre
@@ -46,9 +46,10 @@ class Problem:
             self.delete = delete
             self.instance = instance
             self.parameter = parameter
+            self.paraorder = paraorder
 
         # 判断一个动作能否被做，以及可以做的实例赋值，返回为bool和二位列表
-        def canBeDo(self) -> (bool, list):
+        def canBeDo(self,thestate) -> (bool, list):
             # 用所有的可能地变量组合去实例化这个动作
             # 判断这个动作是不是可以被做,可以的话，返回满足的赋值字典的列表
             # 遍历所有变量的组合，类型一样的判断组成的前提能否全部在now_state被满足，
@@ -64,7 +65,8 @@ class Problem:
                 flag = True
                 # 1.对应类型要一样
                 for i in range(len(permutation)):
-                    if Problem.variables[permutation[i]] != self.parameter[i]:
+
+                    if Problem.variables[permutation[i]] != self.parameter[self.paraorder[i]]:
                         flag = False
                         break
 
@@ -72,15 +74,15 @@ class Problem:
                     continue
                 # 2.yes前提要在状态中
                 para_list = self.parameter.keys()
-                temp_instances = dict(zip(permutation, para_list))
+                temp_instances = dict(zip(para_list, permutation))
                 for pre in self.yesPre:
                     # 逐个item进行替换
-                    temp_yes_pre = Problem.instanceTheAction(pre, temp_instances)
-                    print("替换后temp yes pre = ", temp_yes_pre)
+                    temp_yes_pre = self.instanceTheAction(pre, temp_instances)
+                    # print("替换后temp yes pre = ", temp_yes_pre)
 
                     # 在状态查找是否有这个，没有的话break
                     can_find = False
-                    for state in Problem.nowState:
+                    for state in thestate:
                         if operator.eq(temp_yes_pre, state):  # 找到了，不用继续，直接判断下一个前提
                             can_find = True
                             break
@@ -89,11 +91,11 @@ class Problem:
                         break
                 # 2.no前提要不在状态中
                 for pre in self.notPre:
-                    temp_not_pre = Problem.instanceTheAction(pre, temp_instances)
-                    print("替换后temp not pre = ", temp_not_pre)
+                    temp_not_pre = self.instanceTheAction(pre, temp_instances)
+                    # print("替换后temp not pre = ", temp_not_pre)
 
                     # 在状态查找是否有这个，有的话break
-                    for state in Problem.nowState:
+                    for state in thestate:
                         if operator.eq(temp_not_pre, state):  # 找到了，这个赋值不可以
                             flag = False
                             break
@@ -115,25 +117,25 @@ class Problem:
             for add_state in self.add:
                 if add_state not in Problem.nowState:
                     Problem.nowState.append(add_state)
-                    print("加入state:" + add_state)
+                    # print("加入state:" , add_state)
             # 删去del
             for del_state in self.delete:
                 if del_state in Problem.nowState:
                     Problem.nowState.remove(del_state)
-                    print("删除state:" + del_state)
+                    # print("删除state:" , del_state)
 
         def pullBack(self):
             # 这个动作不行，回溯，把删掉的加回来，加上的删去
             # 删除add
             for add_state in self.add:
-                if add_state not in Problem.nowState:
+                if add_state in Problem.nowState:
                     Problem.nowState.remove(add_state)
-                    print("pullback删除state:" + add_state)
+                    # print("pullback删除state:" , add_state)
             # 加入del
             for del_state in self.delete:
-                if del_state in Problem.nowState:
+                if del_state not in Problem.nowState:
                     Problem.nowState.append(del_state)
-                    print("pullback加入state:" + del_state)
+                    # print("pullback加入state:" , del_state)
 
         def do(self):
             # 说明这个动作已经实例化了
@@ -154,6 +156,13 @@ class Problem:
             self.pullBack()
             return state
 
+        def instanceTheAction(self, clause, instance):
+            ret = []
+            ret.append(clause[0])
+            for j in range(1, len(clause)):
+                ret.append(instance[clause[j]])
+            return ret
+
         # 从当前状态出发，只添加不删除找到包含目标状态的那一层
         # 返回两个list,一个是状态层，一个是动作层，下标一一对应
         def getLayeredStruct(self, initstate, problem):
@@ -173,8 +182,8 @@ class Problem:
                     actionsret.append(tempactions)
                 # 添加所有的addlist到当前状态层
                 for add in self.add:
-                    tempadd = Problem.instanceTheAction(add, self.instance)
-                    initstate.append(tempadd)
+                    #tempadd = Problem.instanceTheAction(add, self.instance)
+                    initstate.append(add)
                 stateret.append(initstate)
             return stateret, actionsret
 
@@ -210,16 +219,6 @@ class Problem:
             statelayer, actionlayer = self.getLayeredStruct(initstate, problem)
             return self.countActions(Problem.goalState, statelayer, len(statelayer) - 1, actionlayer)
 
-    # 实例化函数
-    # 输入：子句，替换字典；输出：替换后的子句
-    # 11.24修改——把他变成外部函数
-    def instanceTheAction(self, clause, instance) -> list:
-        ret = []
-        ret.append(clause[0])
-        for j in range(1, len(clause)):
-            ret.append(instance[clause[j]])
-        return ret
-
     # 根据赋值字典，返回动作实例
     def getActionInstance(self, original_action, assign) -> Action:
         new_action = self.Action()
@@ -230,31 +229,32 @@ class Problem:
         # 把yesPre替换
         new_action.yesPre = []
         for i in original_action.yesPre:
-            new_action.yesPre.append(self.instanceTheAction(i, assign))
+            new_action.yesPre.append(new_action.instanceTheAction(i, assign))
         # 把notPre替换
         new_action.notPre = []
-        for i in original_action.notPrePre:
-            new_action.notPre.append(self.instanceTheAction(i, assign))
+        for i in original_action.notPre:
+            new_action.notPre.append(new_action.instanceTheAction(i, assign))
         # 把add替换
         new_action.add = []
         for i in original_action.add:
-            new_action.add.append(self.instanceTheAction(i, assign))
+            new_action.add.append(new_action.instanceTheAction(i, assign))
         # 把add替换
         new_action.delete = []
         for i in original_action.delete:
-            new_action.delete.append(self.instanceTheAction(i, assign))
+            new_action.delete.append(new_action.instanceTheAction(i, assign))
         # parameter
         new_action.parameter = original_action.parameter
 
         return new_action
 
-    def findActionsCanBedo(self) -> list:
+    def findActionsCanBedo(self,state) -> list:
         #     这个还是找所有可以做的动作，但是返回一个list,传入的参数是对于这个状态所有可以做的list
         #     在solve函数里调用的时候传入nowstate就可以了
         #     因为在计算启发式函数的值的时候也要用到这个函数，如果不拆开直接用原来的就相互调用了
         action_list = []
         for action in self.action_list:
-            can_do, assign_list = action.canBeDo()
+
+            can_do, assign_list = action.canBeDo(state)
             # 如果可以做,对其中每一个可行的排列进行实例化
             if can_do == True:
                 # 遍历每一个赋值字典
@@ -266,19 +266,13 @@ class Problem:
     def changeActionstoQueue(self) -> queue.PriorityQueue:
         #     这个函数将上面的结果list转化成queue，大概就像下面那样
         ret = queue.PriorityQueue()
-        acts = self.findActionsCanBedo()
+        acts = self.findActionsCanBedo(self.nowState)
         for i in acts:
-            ret.put((i.getHeuristic(self), i))
+            # ret.put((i.getHeuristic(self), i))
+            ret.put((1, i))
         return ret
 
-    # @classmethod
-    # def changeActionstoQueue(cls) -> queue.PriorityQueue:
-    #     #     这个函数将上面的结果list转化成queue，大概就像下面那样
-    #     ret = queue.PriorityQueue()
-    #     acts = cls.findActionsCanBedo()
-    #     for i in acts:
-    #         ret.put((i.getHeuristic(cls), i))
-    #     return ret
+
 
     # 这个实际上就是搜索函数
     def solve(self, actions):
@@ -287,9 +281,15 @@ class Problem:
         # 做这个动作
         theAction.do()
         Problem.solves.append(theAction)
-        if Problem.nowState == Problem.goalState:
+        is_goal = True
+        for goal in Problem.goalState:
+            if goal not in Problem.nowState:
+                is_goal = False
+        if is_goal:
             return True
-        # actionsb = self.findActionsCanBedo()##?????????这里应该直接调用change返回优先对列？
+        # if Problem.goalState in Problem.nowState:
+        #     return True
+
         actionsb = self.changeActionstoQueue()
         if actionsb:
             return self.solve(actionsb)
@@ -300,7 +300,10 @@ class Problem:
     def printActions(self):
         print("-------Actions-------")
         for i in range(len(self.solves)):
-            print("action ", i, " ", self.solves[i])
+            action = [self.solves[i].name]
+            for val in self.solves[i].instance.values():
+                action.append(val)
+            print("action", i," :", action)
         print("--------Done--------")
 
 
@@ -350,8 +353,6 @@ def readproblem( filename):
                     break
 
         i = i + 1
-
-
 def readdomain(filename):
     file = open(filename)
     lines = file.readlines()
@@ -373,6 +374,7 @@ def readdomain(filename):
                 temp1 = temp1.strip()
                 temp1list = temp1.split(' ')
                 if temp1list[0] == ':parameters':
+                    tempcnt = 0
                     a[cnt].parameter = {}
                     for k in range(j + 1, len(lines)):
                         temp2 = lines[k]
@@ -382,7 +384,9 @@ def readdomain(filename):
                         if temp2list[0] == ')':
                             j = k
                             break
+
                         for v in temp2list[0:-2]:
+                            a[cnt].paraorder.append(v)
                             a[cnt].parameter[v] = temp2list[-1]
                 if temp1list[0] == ':precondition' or temp1list[0] == ':effect':
                     if temp1list[0] == ':precondition':
@@ -428,28 +432,15 @@ def readdomain(filename):
 
 
 if __name__ == '__main__':
+    # problem = Problem()
     # 读文件
     readproblem('pddl\\test0\\test0_problem.txt')
     readdomain('pddl\\test0\\test0_domain.txt')
-    print(Problem.action_list[0].name)
+    problem = Problem(Problem.nowState,Problem.variables,Problem.goalState)
+    #print(Problem.variables)
 
+    initial_actions = problem.changeActionstoQueue()
 
-    initial_actions = Problem.changeActionstoQueue()
-    Problem.solve(initial_actions)
+    problem.solve(initial_actions)
 
-"""
-#test case 0
-#world初始化参数
-nowState = [['borber','town','field'],['borber','field','castle'],['at','npc','town']]
-goalState = [['at','npc','castle']]
-action_list = [move] #move是一个动作类对象
-variables = {'npc':'player','town':'location','field':'location','castle':'location'}
-
-#action的初始化参数
-parameter={‘p’:'player','l1':'location','l2':'location'}
-yesPre = [['at','p','l1'],['border', 'l1' ,'l2']]
-noPre = [['guarded', 'l2']]
-add = [['at', 'p' ,'l2']]
-delete = [['at','p','l1']]
-
-"""
+    problem.printActions()
