@@ -181,17 +181,22 @@ class Problem:
         # S就是状态层,第k层状态层，对应第k-1层动作层
         def countActions(self, G, S, k, A):
             if k == 0: return 0
+            # 之前就实现了的
             Gp = [x for x in G if x in S[k-1]]
+            # 这一步才实现的
             Gn = [i for i in G if i not in Gp]
+            # theA保存的是实现Gn的动作
             theA = []
+            # A中的每一层是最新能做的动作
             for a in A[k - 1]:
                 instant_add = []
                 for t in a.add:
                     # tempac = a.instanceTheAction(t, a.instance)
                     instant_add.append(t)
+                    # 只有对目标有贡献的工作才会加到theA中
                     if t in Gn and a not in theA:
                         theA.append(a)
-                if theA[-1] == a:
+                if len(theA) and theA[-1] == a:
                     for i in a.yesPre:
                         # tempypr = a.instanceTheAction(i, a.instance)
                         Gp.append(i)
@@ -427,8 +432,8 @@ def readdomain(filename):
 if __name__ == '__main__':
     # problem = Problem()
     # 读文件
-    readproblem('pddl\\test0\\test0_problem.txt')
-    readdomain('pddl\\test0\\test0_domain.txt')
+    readproblem('pddl\\test1\\test1_problem.txt')
+    readdomain('pddl\\test1\\test1_domain.txt')
     problem = Problem(Problem.nowState,Problem.variables,Problem.goalState)
 
 
