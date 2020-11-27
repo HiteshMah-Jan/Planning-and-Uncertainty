@@ -1,5 +1,6 @@
 import queue
 import copy
+import time
 import itertools
 import operator
 
@@ -462,11 +463,24 @@ def readdomain(filename):
 
 if __name__ == '__main__':
     # 读文件
+    # readproblem('pddl\\test0\\test0_problem.txt')
+    # readdomain('pddl\\test0\\test0_domain.txt')
+    #
+    # readproblem('pddl\\test1\\test1_problem.txt')
+    # readdomain('pddl\\test1\\test1_domain.txt')
+    start = time.time()
     readproblem('pddl\\test2\\test2_problem.txt')
     readdomain('pddl\\test2\\test2_domain.txt')
-    problem = Problem(Problem.nowState,Problem.variables,Problem.goalState)
 
+    # readproblem('pddl\\test3\\test3_problem.txt')
+    # readdomain('pddl\\test3\\test3_domain.txt')
+    #
+    # readproblem('pddl\\test4\\test4_problem.txt')
+    # readdomain('pddl\\test4\\test4_domain.txt')
+    problem = Problem(Problem.nowState, Problem.variables, Problem.goalState)
 
     initial_actions = problem.changeActionstoQueue()
     problem.solve(initial_actions)
     problem.printActions()
+    end = time.time()
+    print("test2 running time",end-start,"s")

@@ -1,6 +1,7 @@
 import copy
 import queue
 import time
+import random
 # class Item:
 #     def __init__(self,priority,name):
 #         self.priority = priority
@@ -24,7 +25,7 @@ def orderedVariables(factorList, orderedListOfHiddenVariables: list):
 class VariableElimination:
     @staticmethod
     def inference(factorList, queryVariables,
-    orderedListOfHiddenVariables, evidenceList, valueMap):
+    orderedListOfHiddenVariables, evidenceList, valueMap,ins):
         # orderedVariables(factorList,orderedListOfHiddenVariables)
         for ev in evidenceList:
             #Your code here
@@ -60,7 +61,9 @@ class VariableElimination:
         total = sum(res.cpt.values())
         res.cpt = {k: v/total for k, v in res.cpt.items()}
         # 如果要输出结果就把这句话的注释取消掉，如果计算运行时间不看结果就把下面这个注释到
-        # res.printInf(queryVariables,valueMap,max,orderedListOfHiddenVariables)
+        if ins=='1':
+            res.printInf(queryVariables,valueMap,max,orderedListOfHiddenVariables)
+        return max
 
     @staticmethod
     def printFactors(factorList):
@@ -102,7 +105,7 @@ class Node:
                 break
 
         print("max eliminate width:",max)
-        print(orderedListOfHiddenVariables)
+        print("Elimination order : ",orderedListOfHiddenVariables)
         print("")
     def multiply(self, factor):
         # The incoming factors are all Node type
@@ -244,66 +247,149 @@ eliminatelist3 = ['Disability','Mortality','Anticoagulants']
 eliminatelist4 = ['StrokeType','Disability','Mortality','CTScanResult','MRIScanResult']
 eliminatelist5 = ['StrokeType','Mortality','PatientAge','Anticoagulants','CTScanResult','MRIScanResult']
 
-start = [0,0,0,0,0]
-end = [0,0,0,0,0]
+start = [0,0,0,0,0,0]
+end = [0,0,0,0,0,0]
+print("指令指南：\n"
+      "计算所有运算结果请输入：1\n"
+      "比对不进行消除顺序判断和进行消除顺序判断两种情况下的运行时间差异（5000次运行下的时间）请输入：2\n"
+      "查看P4在不同计算顺序(第一个顺序为算法找到的消除顺序)下的运行时间（5000次运行下的时间）请输入：3\n"
+      "查看P5在不同计算顺序(第一个顺序为算法找到的消除顺序)下的运行时间（5000次运行下的时间）请输入：4\n")
+ins = input()
 
-
-
-#只运行一次结果不明显，运行10000次做对比
-
-start1 = time.time()
-for i in range(0,1000):
+# print("our code's result:")
+if ins=='1':
     VariableElimination.inference(
         [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
         {'Mortality': 'True', 'CTScanResult': 'Ischemic Stroke'},
-        eliminatelist1, {'PatientAge': 1}, valueMap)
+        eliminatelist1, {'PatientAge': 1}, valueMap,ins)
     VariableElimination.inference(
         [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
         {'Disability': 'Moderate', 'CTScanResult': 'Hemmorraghic Stroke'},
-        eliminatelist2, {'PatientAge': 2, 'MRIScanResult': 1}, valueMap)
+        eliminatelist2, {'PatientAge': 2, 'MRIScanResult': 1}, valueMap,ins)
     VariableElimination.inference(
         [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
         {'StrokeType': 'Hemmorraghic Stroke'},
-        eliminatelist3, {'PatientAge': 2, 'CTScanResult': 1, 'MRIScanResult': 0}, valueMap)
+        eliminatelist3, {'PatientAge': 2, 'CTScanResult': 1, 'MRIScanResult': 0}, valueMap,ins)
     VariableElimination.inference(
         [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
         {'Anticoagulants': 'Used'},
-        eliminatelist4, {'PatientAge': 1}, valueMap)
+        eliminatelist4, {'PatientAge': 1}, valueMap,ins)
     VariableElimination.inference(
         [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
         {'Disability': 'Negligible'},
-        eliminatelist5, {}, valueMap)
-end1 = time.time()
+        eliminatelist5, {}, valueMap,ins)
+elif ins=='2':
+#只运行一次结果不明显，运行5000次做对比
+    start1 = time.time()
+    for i in range(0,5000):
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Mortality': 'True', 'CTScanResult': 'Ischemic Stroke'},
+            eliminatelist1, {'PatientAge': 1}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Disability': 'Moderate', 'CTScanResult': 'Hemmorraghic Stroke'},
+            eliminatelist2, {'PatientAge': 2, 'MRIScanResult': 1}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'StrokeType': 'Hemmorraghic Stroke'},
+            eliminatelist3, {'PatientAge': 2, 'CTScanResult': 1, 'MRIScanResult': 0}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Anticoagulants': 'Used'},
+            eliminatelist4, {'PatientAge': 1}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Disability': 'Negligible'},
+            eliminatelist5, {}, valueMap,ins)
+    end1 = time.time()
 
-start2 = time.time()
-orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist1)
-orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist2)
-orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist3)
-orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist4)
-orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist5)
-for i in range(0,1000):
-    VariableElimination.inference(
-        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
-        {'Mortality': 'True', 'CTScanResult': 'Ischemic Stroke'},
-        eliminatelist1, {'PatientAge': 1}, valueMap)
-    VariableElimination.inference(
-        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
-        {'Disability': 'Moderate', 'CTScanResult': 'Hemmorraghic Stroke'},
-        eliminatelist2, {'PatientAge': 2, 'MRIScanResult': 1}, valueMap)
-    VariableElimination.inference(
-        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
-        {'StrokeType': 'Hemmorraghic Stroke'},
-        eliminatelist3, {'PatientAge': 2, 'CTScanResult': 1, 'MRIScanResult': 0}, valueMap)
-    VariableElimination.inference(
-        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
-        {'Anticoagulants': 'Used'},
-        eliminatelist4, {'PatientAge': 1}, valueMap)
-    VariableElimination.inference(
-        [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
-        {'Disability': 'Negligible'},
-        eliminatelist5, {}, valueMap)
-end2 = time.time()
+    start2 = time.time()
+    orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist1)
+    orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist2)
+    orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist3)
+    orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist4)
+    orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist5)
+    for i in range(0,5000):
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Mortality': 'True', 'CTScanResult': 'Ischemic Stroke'},
+            eliminatelist1, {'PatientAge': 1}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Disability': 'Moderate', 'CTScanResult': 'Hemmorraghic Stroke'},
+            eliminatelist2, {'PatientAge': 2, 'MRIScanResult': 1}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'StrokeType': 'Hemmorraghic Stroke'},
+            eliminatelist3, {'PatientAge': 2, 'CTScanResult': 1, 'MRIScanResult': 0}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Anticoagulants': 'Used'},
+            eliminatelist4, {'PatientAge': 1}, valueMap,ins)
+        VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Disability': 'Negligible'},
+            eliminatelist5, {}, valueMap,ins)
+    end2 = time.time()
 
 
-print(end1-start1)
-print(end2-start2)
+    print("不进行消除顺序判断下计算P1-P5所有概率值5000次的运行时间：",end1-start1," s")
+    print("进行消除顺序判断下计算P1-P5所有概率值5000次的运行时间：",end2-start2, " s")
+elif ins=='4':
+
+    print("count p5 = P(Disability='Negligible')\n")
+
+
+    start[0] = time.time()
+    orderedVariables([PatientAge,CTScanResult,MRIScanResult,Anticoagulants,StrokeType,Disability,Mortality],eliminatelist5)
+    print("our order of variable elimination: ",eliminatelist5)
+    for i in range(0,5000):
+        width = VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Disability': 'Negligible'},
+            eliminatelist5, {}, valueMap,ins)
+    end[0] = time.time()
+    print("running time = ",end[0]-start[0], " s")
+    print("Elimination width = ",width)
+    for i in range(1,6):
+        start[i] = time.time()
+        random.shuffle(eliminatelist5)
+        print("random order of variable elimination: ",eliminatelist5)
+        for j in range(0, 5000):
+            width = VariableElimination.inference(
+                [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+                {'Disability': 'Negligible'},
+                eliminatelist5, {}, valueMap,ins)
+        end[i] = time.time()
+        print("running time = ", end[i] - start[i], " s")
+        print("Elimination width = ", width)
+elif ins=='3':
+    print("count p4 = P(Anticoagulants='Used' | PatientAge='31-65')\n")
+
+    start[0] = time.time()
+    orderedVariables([PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+                     eliminatelist4)
+    print("our order of variable elimination: ", eliminatelist4)
+    for i in range(0, 5000):
+        width = VariableElimination.inference(
+            [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+            {'Anticoagulants': 'Used'},
+            eliminatelist4, {'PatientAge': 1}, valueMap,ins)
+
+    end[0] = time.time()
+    print("running time = ", end[0] - start[0], " s")
+    print("Elimination width = ", width)
+    for i in range(1, 6):
+        start[i] = time.time()
+        random.shuffle(eliminatelist4)
+        print("random order of variable elimination: ", eliminatelist4)
+        for j in range(0, 5000):
+            width = VariableElimination.inference(
+                [PatientAge, CTScanResult, MRIScanResult, Anticoagulants, StrokeType, Disability, Mortality],
+                {'Anticoagulants': 'Used'},
+                eliminatelist4, {'PatientAge': 1}, valueMap,ins)
+
+        end[i] = time.time()
+        print("running time = ", end[i] - start[i], " s")
+        print("Elimination width = ", width)
