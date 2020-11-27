@@ -60,12 +60,11 @@ class Problem:
             return self.name < other.name
 
             # 判断一个动作能否被做，以及可以做的实例赋值，返回为bool和二位列表
-        def canBeDo(self,thestate) -> (bool, list):
+        def canBeDo(self,thestate,tag) -> (bool, list):
             # 用所有的可能地变量组合去实例化这个动作
             # 判断这个动作是不是可以被做,可以的话，返回满足的赋值字典的列表
             # 遍历所有变量的组合，类型一样的判断组成的前提能否全部在now_state被满足，
             # 如果可以就在这里实例化出一个列表，里面是赋值字典
-            # var_len = len(Problem.variables)
             parameter_num = len(self.parameter)
             ok_permutation_list = []  # 二维列表
 
@@ -76,8 +75,6 @@ class Problem:
                 flag = True
                 # 1.对应类型要一样
                 for i in range(len(permutation)):
-                    temp1 = permutation[i]
-                    temp2 = self.paraorder[i]
                     if Problem.variables[permutation[i]] != self.parameter[self.paraorder[i]]:
                         flag = False
                         break
@@ -90,8 +87,6 @@ class Problem:
                 for pre in self.yesPre:
                     # 逐个item进行替换
                     temp_yes_pre = self.instanceTheAction(pre, temp_instances)
-                    # print("替换后temp yes pre = ", temp_yes_pre)
-
                     # 在状态查找是否有这个，没有的话break
                     can_find = False
                     for state in thestate:
@@ -104,17 +99,17 @@ class Problem:
                 if flag == False:  # 这个赋值不可，找下一个排列
                     continue
                 # 2.no前提要不在状态中
-                for pre in self.notPre:
-                    temp_not_pre = self.instanceTheAction(pre, temp_instances)
-                    # print("替换后temp not pre = ", temp_not_pre)
-
-                    # 在状态查找是否有这个，有的话break
-                    for state in thestate:
-                        if operator.eq(temp_not_pre, state):  # 找到了，这个赋值不可以
-                            flag = False
+                # 只有在tag=1的时候才判断，tag=0的时候说明是在找启发式，不考虑否定前提
+                if(tag==1):
+                    for pre in self.notPre:
+                        temp_not_pre = self.instanceTheAction(pre, temp_instances)
+                        # 在状态查找是否有这个，有的话break
+                        for state in thestate:
+                            if operator.eq(temp_not_pre, state):  # 找到了，这个赋值不可以
+                                flag = False
+                                break
+                        if flag == False:  # 这个赋值有不满足前提直接break
                             break
-                    if flag == False:  # 这个赋值有不满足前提直接break
-                        break
                 if flag == False:  # 这个赋值不可，找下一个排列
                     continue
                 else:  # 这个赋值可以，构造新的action对象加入list
@@ -125,19 +120,15 @@ class Problem:
 
         def renewState(self):
             # 更新当前状态，将该增加的增加进来，该删除的删除出去
-            # Problem.nowState
             # 首先进行替换后的add，del分别作用，替换已经在构造的时候就已经实现了
             # 加入add
             for add_state in self.add:
                 if add_state not in Problem.nowState:
                     Problem.nowState.append(add_state)
-                    print("加入state:" , add_state)
             # 删去del
             for del_state in self.delete:
                 if del_state in Problem.nowState:
                     Problem.nowState.remove(del_state)
-                    print("删除state:" , del_state)
-
         def pullBack(self):
             # 这个动作不行，回溯，把删掉的加回来，加上的删去
             # 删除add
@@ -149,7 +140,6 @@ class Problem:
             for del_state in self.delete:
                 if del_state not in Problem.nowState:
                     Problem.nowState.append(del_state)
-                    # print("pullback加入state:" , del_state)
 
         def do(self):
             # 说明这个动作已经实例化了
@@ -180,7 +170,6 @@ class Problem:
         @staticmethod
         def differenceset(this,other):
             ret = []
-
             for i in this:
                 havesame = False
                 for j in other:
@@ -200,10 +189,9 @@ class Problem:
             stateret.append(initstate[:])
             while not self.isContainGoal(initstate):
                 # 找到所有可以做的动作，这个里面都是实例化好的动作
-                tempactions = problem.findActionsCanBedo(initstate)
+                tempactions = problem.findActionsCanBedo(initstate,0)
                 if len(actionsret) > 0:
                     # 做差集
-                    # subset = [i for i in tempactions if i not in actionsret[-1]]
                     for actset in actionsret:
                         # 和所有的集合做差集
                         tempactions = self.differenceset(tempactions,actset)
@@ -215,8 +203,6 @@ class Problem:
                     # 把这个list添加到动作层
                     actionsret.append(tempactions[:])
                 # 添加所有的addlist到当前状态层
-                # for add in self.add:
-                #     initstate.append(add)
                 for action in actionsret[-1]:
                     for add in action.add:
                         initstate.append(add)
@@ -244,10 +230,8 @@ class Problem:
                         theA.append(a)
                 if len(theA) and theA[-1] == a:
                     for i in a.yesPre:
-                        # tempypr = a.instanceTheAction(i, a.instance)
                         Gp.append(i)
                     for i in a.notPre:
-                        # tempnpr = a.instanceTheAction(i, a.instance)
                         Gp.append(i)
                     for i in instant_add:
                         if i in Gn:
@@ -291,14 +275,14 @@ class Problem:
 
         return new_action
 
-    def findActionsCanBedo(self,state) -> list:
+    def findActionsCanBedo(self,state,tag) -> list:
         #     这个还是找所有可以做的动作，但是返回一个list,传入的参数是对于这个状态所有可以做的list
         #     在solve函数里调用的时候传入nowstate就可以了
         #     因为在计算启发式函数的值的时候也要用到这个函数，如果不拆开直接用原来的就相互调用了
         action_list = []
         for action in self.action_list:
 
-            can_do, assign_list = action.canBeDo(state)
+            can_do, assign_list = action.canBeDo(state,tag)
             # 如果可以做,对其中每一个可行的排列进行实例化
             if can_do == True:
                 # 遍历每一个赋值字典
@@ -308,12 +292,11 @@ class Problem:
         return action_list
 
     def changeActionstoQueue(self) -> queue.PriorityQueue:
-        #     这个函数将上面的结果list转化成queue，大概就像下面那样
+        #     这个函数将findActionsCanBedo的结果list转化成queue
         ret = queue.PriorityQueue()
-        acts = self.findActionsCanBedo(self.nowState)
+        acts = self.findActionsCanBedo(self.nowState,1)
         for i in acts:
             temp = i.getHeuristic(self)
-            # print(temp)
             ret.put((self.cost+temp, i))
 
         return ret
@@ -324,10 +307,6 @@ class Problem:
     def solve(self, actions):
         # 获取第一个动作
         theAction = actions.get()[1]
-        aaaaaction = [theAction.name]
-        for val in theAction.instance.values():
-            aaaaaction.append(val)
-        print(aaaaaction)
         # 做这个动作
         theAction.do()
         self.cost += 1
@@ -338,8 +317,6 @@ class Problem:
                 is_goal = False
         if is_goal:
             return True
-        # if Problem.goalState in Problem.nowState:
-        #     return True
 
         actionsb = self.changeActionstoQueue()
         if actionsb:
@@ -418,7 +395,6 @@ def readdomain(filename):
         line = line.strip()
         one = line.split(' ')
         if one[0] == '(:action':
-            # a[cnt] = Problem.Action()
             a[cnt].name = lines[i + 1].strip()
             j = i + 2
             while (j < len(lines)):
@@ -485,15 +461,11 @@ def readdomain(filename):
 
 
 if __name__ == '__main__':
-    # problem = Problem()
     # 读文件
     readproblem('pddl\\test2\\test2_problem.txt')
     readdomain('pddl\\test2\\test2_domain.txt')
     problem = Problem(Problem.nowState,Problem.variables,Problem.goalState)
-    # for i in problem.action_list:
-    #     if i.name=='attack':
-    #         for a in i.delete:
-    #             print(a)
+
 
     initial_actions = problem.changeActionstoQueue()
     problem.solve(initial_actions)
