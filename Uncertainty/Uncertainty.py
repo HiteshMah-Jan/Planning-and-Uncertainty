@@ -2,12 +2,14 @@ import copy
 import queue
 import time
 import random
-# class Item:
-#     def __init__(self,priority,name):
-#         self.priority = priority
-#         self.name = name
-#     def __cmp__(self, other):
-#         return self.priority<=other.priority
+
+
+class Item:
+    def __init__(self,priority,name):
+        self.priority = priority
+        self.name = name
+    def __cmp__(self, other):
+        return self.priority<=other.priority
 
 def orderedVariables(factorList, orderedListOfHiddenVariables: list):
     q = queue.PriorityQueue()
